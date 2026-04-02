@@ -1,5 +1,5 @@
-#**NFA to DFA Converter Using Subset Construction Method**
-##**About**
+# **NFA to DFA Converter Using Subset Construction Method**
+## **About**
 This tool converts a given NFA into a DFA using the Subset Construction Method.
 The user enters the NFA details: states, alphabets, initial state, final state(s), and transitions in the format mentioned on the sidebar.
 On clicking the Convert "NFA to DFA" button, the following are displayed:
@@ -8,7 +8,7 @@ On clicking the Convert "NFA to DFA" button, the following are displayed:
 - Subset Construction Steps
 - DFA Transition Table, DFA Final States, and DFA Diagram
 
-##**Technologies Used**
+## **Technologies Used**
 - Python
 - Streamlit
 - Pandas
