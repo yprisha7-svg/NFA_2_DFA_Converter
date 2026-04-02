@@ -8,7 +8,7 @@ On clicking the Convert "NFA to DFA" button, the following are displayed:
 - Subset Construction Steps
 - DFA Transition Table, DFA Final States, and DFA Diagram
 
-## **Technologies Used**
+## **Built With**
 - Python
 - Streamlit
 - Pandas
