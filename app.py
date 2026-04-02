@@ -31,7 +31,7 @@ initial_state = st.text_input("Enter initial state: ")
 final_states = st.text_input("Enter final state/states: ")
 st.subheader("Enter transitions:")
 st.write("Format to be used: state,symbol=state")
-trans = st.text_input("Enter transitions (ex: q0,0=q0;q1;q0,1=q1): ")
+trans = st.text_input("Enter transitions (ex: q0,0=q0,q1;q0,1=q1): ")
 if st.button("Convert NFA to DFA"):
     if not states or not alphabets or not initial_state or not final_states:
         st.error("Please fill in all the fields before converting.")
@@ -74,7 +74,7 @@ if st.button("Convert NFA to DFA"):
     nfa_graph = graphviz.Digraph()
     for state in states_list:
         if state in final_states_list:
-            nfa_graph.node(state, shape='doublecircle')
+            nfa_graph.node(state, shape="doublecircle")
     for (state, symbol), next_states in nfa.items():
         for next_state in next_states:
             nfa_graph.edge(state, next_state, label = symbol)
@@ -136,7 +136,7 @@ if st.button("Convert NFA to DFA"):
     dfa_graph = graphviz.Digraph()
     for dfa_state in processed:
         if any(f in dfa_state for f in final_states_list):
-            dfa_graph.node(str(dfa_state), shape='doublecircle')
+            dfa_graph.node(str(dfa_state), shape="doublecircle")
     for row in dfa_rows:
         for symbol in alphabets_list:
             dfa_graph.edge(row["δ"], row[symbol], label = symbol)
