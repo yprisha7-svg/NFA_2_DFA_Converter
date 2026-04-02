@@ -24,6 +24,6 @@ On clicking the Convert "NFA to DFA" button, the following are displayed:
 ## Features
 - Displays NFA Transition Table and Diagram
 - Displays Subset Construction Steps
-- Displays DFA Transition Table and Diagram
+- Displays DFA Transition Table, Final States and Diagram
 - Highlights DFA Final States with double circles in the diagram
 - Input validation using error messages
