@@ -350,6 +350,16 @@ div[data-testid="stDataFrame"] {
     color: #0d47a1;
     font-weight: 600;
 }
+.step-epsilon {
+    background: linear-gradient(120deg, #f3e5f5, #ede7f6);
+    border-left: 5px solid #8e24aa;
+    border-radius: 0 14px 14px 0;
+    padding: 10px 18px 10px 32px;
+    margin: 3px 0;
+    font-size: 14px;
+    color: #4a148c;
+    font-weight: 600;
+}
 
 .step-diagram-card {
     background: linear-gradient(120deg, #fdf6ff, #fff0fa);
@@ -371,9 +381,58 @@ div[data-testid="stDataFrame"] {
     display: inline-block;
 }
 
+.epsilon-box {
+    background: linear-gradient(135deg, #f3e5f5, #ede7f6);
+    border: 2px solid #ba68c8;
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin: 10px 0 18px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.epsilon-symbol {
+    font-size: 28px;
+    font-weight: 900;
+    color: #6a1b9a;
+    font-family: 'Fira Code', monospace;
+    background: #fff0f8;
+    border: 2px solid #f48fb1;
+    border-radius: 10px;
+    padding: 4px 16px;
+    cursor: pointer;
+    user-select: all;
+    letter-spacing: 2px;
+}
+.epsilon-label {
+    color: #4a148c;
+    font-size: 14px;
+    font-weight: 700;
+}
+.epsilon-hint {
+    color: #8e24aa;
+    font-size: 13px;
+    font-style: italic;
+}
+
 p, div, span, li { color: #4a148c; }
 </style>
 """, unsafe_allow_html=True)
+
+EPSILON = "\u03b5"
+
+
+def compute_epsilon_closure(nfa, states):
+    closure = set(states)
+    stack = list(states)
+    while stack:
+        s = stack.pop()
+        for ns in nfa.get((s, EPSILON), []):
+            if ns not in closure:
+                closure.add(ns)
+                stack.append(ns)
+    return frozenset(closure)
 
 
 def parse_input(text, extra_alpha_str=""):
@@ -423,7 +482,8 @@ def parse_input(text, extra_alpha_str=""):
             continue
 
         states_set.add(state)
-        alpha_set.add(sym)
+        if sym != EPSILON:
+            alpha_set.add(sym)
         for d in dest_states:
             states_set.add(d)
 
@@ -440,7 +500,7 @@ def parse_input(text, extra_alpha_str=""):
     if extra_alpha_str.strip():
         for a in extra_alpha_str.split(","):
             a = a.strip()
-            if a:
+            if a and a != EPSILON:
                 alpha_set.add(a)
 
     first_line = lines[0]
@@ -449,11 +509,14 @@ def parse_input(text, extra_alpha_str=""):
     comma = left_part.rfind(",")
     initial = left_part[:comma].strip()
 
+    has_epsilon = any(sym == EPSILON for (_, sym) in nfa.keys())
+
     return {
         "nfa": nfa,
         "states": sorted(states_set),
         "alphabets": sorted(alpha_set),
         "initial": initial,
+        "has_epsilon": has_epsilon,
     }, None
 
 
@@ -692,7 +755,8 @@ def frozenset_to_str(fs):
 
 def run_subset_construction(nfa, alphabets_list, initial_state, final_states):
     dead_state_label = "qd"
-    initial_frozen = frozenset([initial_state])
+    initial_closure = compute_epsilon_closure(nfa, frozenset([initial_state]))
+    initial_frozen = initial_closure
 
     queue = deque()
     queue.append(initial_frozen)
@@ -714,14 +778,22 @@ def run_subset_construction(nfa, alphabets_list, initial_state, final_states):
 
         visited[current_str] = current_frozen
         order.append(current_str)
-        step_info = {"state": current_str, "transitions": []}
+
+        epsilon_closure_members = sorted(current_frozen)
+        step_info = {
+            "state": current_str,
+            "epsilon_closure": epsilon_closure_members,
+            "transitions": [],
+        }
 
         for sym in alphabets_list:
             reachable = set()
             for s in current_frozen:
-                if (s, sym) in nfa:
-                    for ns in nfa[(s, sym)]:
-                        reachable.add(ns)
+                for ns in nfa.get((s, sym), []):
+                    reachable.add(ns)
+
+            if reachable:
+                reachable = compute_epsilon_closure(nfa, reachable)
 
             if not reachable:
                 nxt_str = dead_state_label
@@ -735,6 +807,8 @@ def run_subset_construction(nfa, alphabets_list, initial_state, final_states):
                     "is_dead": True,
                     "is_first_dead": is_first_dead,
                     "from_dead": False,
+                    "reachable_before_closure": [],
+                    "reachable_after_closure": [],
                 })
             else:
                 nxt_frozen = frozenset(reachable)
@@ -751,12 +825,17 @@ def run_subset_construction(nfa, alphabets_list, initial_state, final_states):
                     "is_dead": False,
                     "is_first_dead": False,
                     "from_dead": False,
+                    "reachable_after_closure": sorted(reachable),
                 })
 
         steps_log.append(step_info)
 
     if has_dead:
-        dead_step = {"state": dead_state_label, "transitions": []}
+        dead_step = {
+            "state": dead_state_label,
+            "epsilon_closure": [],
+            "transitions": [],
+        }
         for sym in alphabets_list:
             dfa_transitions[(dead_state_label, sym)] = dead_state_label
             dead_step["transitions"].append({
@@ -766,6 +845,7 @@ def run_subset_construction(nfa, alphabets_list, initial_state, final_states):
                 "is_dead": True,
                 "is_first_dead": False,
                 "from_dead": True,
+                "reachable_after_closure": [],
             })
         steps_log.append(dead_step)
         order.append(dead_state_label)
@@ -787,7 +867,7 @@ def render_ui():
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class='instr-box'>
       <div style='font-size:20px; font-weight:800; color:#8e24aa; margin-bottom:16px;'>How to Use</div>
       <div class='instr-step'>
@@ -808,14 +888,31 @@ def render_ui():
       </div>
       <div class='instr-step'>
         <div class='instr-num'>4</div>
+        <div class='instr-text'>For <b>epsilon transitions</b>, use the symbol <b>{EPSILON}</b> as the transition symbol. You can copy it from the box below.</div>
+      </div>
+      <div class='instr-step'>
+        <div class='instr-num'>5</div>
         <div class='instr-text'>Select <b>final states</b> from the dropdown, then click <b>Convert</b>.</div>
       </div>
       <div style='margin-top:16px; padding:14px 18px; background:#fff0f8; border-radius:12px; border:1px solid #f8bbd0;'>
-        <b style='color:#880e4f;'>Example input:</b><br>
+        <b style='color:#880e4f;'>Example input (with epsilon):</b><br>
+        <span style='font-family:Fira Code,monospace; font-size:13px; color:#4a148c; line-height:2;'>
+          q0,{EPSILON}=q1<br>q0,a=q0<br>q1,b=q2<br>q2,{EPSILON}=q0
+        </span>
+        <br><br>
+        <b style='color:#880e4f;'>Example input (without epsilon):</b><br>
         <span style='font-family:Fira Code,monospace; font-size:13px; color:#4a148c; line-height:2;'>
           q0,a=q0,q1<br>q0,b=q0<br>q1,a=q2<br>q1,b=q2<br>q2,a=q2<br>q2,b=q2
         </span>
       </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class='epsilon-box'>
+      <span class='epsilon-label'>Epsilon symbol for copy-paste:</span>
+      <span class='epsilon-symbol' title='Click and copy this symbol'>{EPSILON}</span>
+      <span class='epsilon-hint'>Select and copy {EPSILON} above to use in transitions (e.g. q0,{EPSILON}=q1)</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -827,11 +924,11 @@ def render_ui():
     with col1:
         trans_text = st.text_area(
             "Transitions (one per line)",
-            placeholder="q0,a=q0,q1\nq0,b=q0\nq1,a=q2\nq1,b=q2",
+            placeholder=f"q0,a=q0,q1\nq0,b=q0\nq1,{EPSILON}=q2\nq2,a=q2",
             height=180,
         )
     with col2:
-        st.markdown("""
+        st.markdown(f"""
         <div class='card-lavender' style='height:100%; box-sizing:border-box;'>
           <b style='color:#6a1b9a; font-size:15px;'>Format Guide</b><br><br>
           <span style='font-size:13px; color:#4a148c;'>
@@ -839,6 +936,8 @@ def render_ui():
           <code style='background:#f3e5f5; padding:2px 6px; border-radius:4px; color:#880e4f;'>q0,a=q1</code><br><br>
           Multiple destinations:<br>
           <code style='background:#f3e5f5; padding:2px 6px; border-radius:4px; color:#880e4f;'>q0,a=q1,q2</code><br><br>
+          Epsilon transition:<br>
+          <code style='background:#f3e5f5; padding:2px 6px; border-radius:4px; color:#880e4f;'>q0,{EPSILON}=q1</code><br><br>
           Arrow style also works:<br>
           <code style='background:#f3e5f5; padding:2px 6px; border-radius:4px; color:#880e4f;'>q0,a->q1</code><br><br>
           <b style='color:#e91e63;'>First line state = Start state</b>
@@ -876,12 +975,15 @@ def render_ui():
             badges_alpha = " ".join(
                 f"<span class='badge badge-state'>{a}</span>" for a in parsed['alphabets']
             )
+            has_eps_badge = ""
+            if parsed.get("has_epsilon"):
+                has_eps_badge = f"<br><br><b>Epsilon transitions:</b> <span class='badge badge-final'>{EPSILON}-NFA detected</span>"
             st.markdown(f"""
             <div class='card-pink' style='margin-top:0; padding:14px 18px;'>
               <b style='color:#880e4f;'>Detected automatically:</b><br><br>
               <b>Start state:</b> <span class='badge badge-start'>{parsed['initial']}</span><br><br>
               <b>States:</b> {badges_states}<br><br>
-              <b>Alphabets:</b> {badges_alpha}
+              <b>Alphabets (excl. {EPSILON}):</b> {badges_alpha}{has_eps_badge}
             </div>
             """, unsafe_allow_html=True)
 
@@ -917,12 +1019,23 @@ def render_ui():
     states_list = parsed["states"]
     alphabets_list = parsed["alphabets"]
     initial_state = parsed["initial"]
+    has_epsilon = parsed.get("has_epsilon", False)
 
     final_states_clean = [str(s) for s in final_states]
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
 
     st.markdown("<div class='section-head'>NFA Transition Table</div>", unsafe_allow_html=True)
+
+    if has_epsilon:
+        st.markdown(f"""
+        <div class='step-epsilon' style='margin-bottom:12px;'>
+          This is an {EPSILON}-NFA. The transition table includes an {EPSILON} column showing epsilon transitions.
+          The DFA conversion will apply {EPSILON}-closure at every step.
+        </div>
+        """, unsafe_allow_html=True)
+
+    nfa_cols = alphabets_list + ([EPSILON] if has_epsilon else [])
     nfa_rows = []
     for state in states_list:
         label = state
@@ -933,6 +1046,8 @@ def render_ui():
         row = {"State": label}
         for sym in alphabets_list:
             row[sym] = ", ".join(nfa[(state, sym)]) if (state, sym) in nfa else "\u03d5"
+        if has_epsilon:
+            row[EPSILON] = ", ".join(nfa[(state, EPSILON)]) if (state, EPSILON) in nfa else "\u03d5"
         nfa_rows.append(row)
     st.dataframe(pd.DataFrame(nfa_rows), use_container_width=True, hide_index=True)
 
@@ -1012,6 +1127,15 @@ def render_ui():
     st.markdown("<div class='section-head'>DFA Subset Construction - Step by Step</div>",
                 unsafe_allow_html=True)
 
+    if has_epsilon:
+        initial_closure = compute_epsilon_closure(nfa, frozenset([initial_state]))
+        closure_members = ", ".join(sorted(initial_closure))
+        st.markdown(f"""
+        <div class='step-epsilon' style='margin-bottom:14px;'>
+          {EPSILON}-closure({initial_state}) = {{{closure_members}}} - this is the DFA start state.
+        </div>
+        """, unsafe_allow_html=True)
+
     order, dfa_transitions, dfa_final, has_dead, steps_log = run_subset_construction(
         nfa, alphabets_list, initial_state, final_states_clean
     )
@@ -1044,8 +1168,14 @@ def render_ui():
                     nfa_members = "{" + state_str + "}"
                 else:
                     nfa_members = "{" + state_str + "}"
+
+                epsilon_note = ""
+                if has_epsilon and step.get("epsilon_closure"):
+                    ec_members = ", ".join(step["epsilon_closure"])
+                    epsilon_note = f" | {EPSILON}-closure: {{{ec_members}}}"
+
                 header_ph.markdown(
-                    f"<div class='step-state'>Processing DFA state: [{state_str}] - NFA states: {nfa_members}</div>",
+                    f"<div class='step-state'>Processing DFA state: [{state_str}] - NFA states: {nfa_members}{epsilon_note}</div>",
                     unsafe_allow_html=True
                 )
 
@@ -1080,7 +1210,11 @@ def render_ui():
                     msg = f"On '{sym}': [{state_str}] --> [qd]"
                     css_class = "step-dead"
                 elif is_new:
-                    msg = f"On '{sym}': [{state_str}] --> [{nxt}] (new state discovered)"
+                    after_closure = t.get("reachable_after_closure", [])
+                    closure_note = ""
+                    if has_epsilon and after_closure:
+                        closure_note = f" | {EPSILON}-closure: {{{', '.join(after_closure)}}}"
+                    msg = f"On '{sym}': [{state_str}] --> [{nxt}] (new state discovered){closure_note}"
                     css_class = "step-new"
                 else:
                     msg = f"On '{sym}': [{state_str}] --> [{nxt}] (already known)"
@@ -1128,7 +1262,7 @@ def render_ui():
     dfa_rows_out = []
     for s_str in order:
         label = s_str
-        if s_str == initial_state:
+        if s_str == frozenset_to_str(compute_epsilon_closure(nfa, frozenset([initial_state]))):
             label = "-> " + label
         if s_str in dfa_final:
             label = label + " *"
@@ -1139,6 +1273,8 @@ def render_ui():
 
     st.dataframe(pd.DataFrame(dfa_rows_out), use_container_width=True, hide_index=True)
 
+    dfa_start_state = frozenset_to_str(compute_epsilon_closure(nfa, frozenset([initial_state])))
+
     final_badges = " ".join(
         f"<span class='badge badge-final'>{s}</span>" for s in dfa_final
     ) or "<i>None</i>"
@@ -1148,7 +1284,7 @@ def render_ui():
 
     st.markdown(f"""
     <div class='card-pink'>
-      <b>Start State:</b> <span class='badge badge-start'>{initial_state}</span>
+      <b>Start State:</b> <span class='badge badge-start'>{dfa_start_state}</span>
       &nbsp;&nbsp;
       <b>Final States:</b> {final_badges}<br><br>
       <b>All DFA States:</b> {all_dfa_state_badges}
