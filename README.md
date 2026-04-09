@@ -43,5 +43,6 @@ Final States: Selected manually
 - Displays Subset Construction Steps
 - Displays DFA Transition Table, States and Final States
 - Separate diagrams for every transition
+- Handles NFA with epsilon moves
 - Clean and structured UI
 - Shows the process step by step instead of displaying everything at once.
