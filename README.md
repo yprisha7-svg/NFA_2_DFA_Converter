@@ -17,11 +17,12 @@ Instead of directly showing only the final DFA, it presents the entire conversio
 After clicking Convert, the application displays:
 
 - NFA Transition Table
-- NFA Graph (built step by step)
-- Subset Construction Process (step by step)
+- NFA Graph 
+- Subset Construction Process
 - DFA Transition Table
 - DFA Final States
-- DFA Graph (built step by step)
+- DFA Graph
+- Step by step NFA and DFA graph building
 - Individual diagrams for each transition in both NFA and DFA
 
 ## **Input Format**
