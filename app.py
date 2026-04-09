@@ -392,18 +392,18 @@ def parse_input(text, extra_alpha_str=""):
         elif "->" in line:
             sep = "->"
         else:
-            errors.append(f"Line {i}: '{line}' — invalid format. Expected: state,symbol=nextstate or state,symbol->nextstate")
+            errors.append(f"Line {i}: '{line}' - invalid format. Expected: state,symbol=nextstate or state,symbol->nextstate")
             continue
 
         parts = line.split(sep, 1)
         if len(parts) != 2:
-            errors.append(f"Line {i}: '{line}' — could not split on '{sep}'. Check your format.")
+            errors.append(f"Line {i}: '{line}' - could not split on '{sep}'. Check your format.")
             continue
 
         left, right = parts[0].strip(), parts[1].strip()
 
         if "," not in left:
-            errors.append(f"Line {i}: '{left}' — missing comma between state and symbol. Expected: state,symbol")
+            errors.append(f"Line {i}: '{left}' - missing comma between state and symbol. Expected: state,symbol")
             continue
 
         comma = left.rfind(",")
@@ -792,7 +792,7 @@ def render_ui():
       <div style='font-size:20px; font-weight:800; color:#8e24aa; margin-bottom:16px;'>How to Use</div>
       <div class='instr-step'>
         <div class='instr-num'>1</div>
-        <div class='instr-text'>Enter transitions below — one per line using the format:<br>
+        <div class='instr-text'>Enter transitions below - one per line using the format:<br>
           <span class='code-ex'>state,symbol=nextstate1,nextstate2</span>
           &nbsp; or &nbsp;
           <span class='code-ex'>state,symbol->nextstate</span>
@@ -804,7 +804,7 @@ def render_ui():
       </div>
       <div class='instr-step'>
         <div class='instr-num'>3</div>
-        <div class='instr-text'>States and alphabets are <b>extracted automatically</b>. If any extra alphabets are provided, include them in the field below — if there is no extra alphabet, leave it blank and detected symbols will be used.</div>
+        <div class='instr-text'>States and alphabets are <b>extracted automatically</b>. If any extra alphabets are provided, include them in the field below - if there is no extra alphabet, leave it blank and detected symbols will be used.</div>
       </div>
       <div class='instr-step'>
         <div class='instr-num'>4</div>
@@ -849,7 +849,7 @@ def render_ui():
     col3, _ = st.columns([1, 1])
     with col3:
         extra_alpha = st.text_input(
-            "Extra alphabets (optional, comma-separated — leave blank to use detected symbols only)",
+            "Extra alphabets (optional, comma-separated - leave blank to use detected symbols only)",
             placeholder="e.g. c, d",
         )
 
@@ -911,7 +911,7 @@ def render_ui():
         return
 
     if not final_states:
-        st.warning("No final states selected — the DFA will have no accepting states.")
+        st.warning("No final states selected - the DFA will have no accepting states.")
 
     nfa = parsed["nfa"]
     states_list = parsed["states"]
@@ -936,7 +936,7 @@ def render_ui():
         nfa_rows.append(row)
     st.dataframe(pd.DataFrame(nfa_rows), use_container_width=True, hide_index=True)
 
-    st.markdown("<div class='section-head'>NFA Graph — Step by Step</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-head'>NFA Graph - Step by Step</div>", unsafe_allow_html=True)
 
     all_nfa_edges = []
     for (s, sym), ns_list in nfa.items():
@@ -959,7 +959,7 @@ def render_ui():
 
             nfa_ph = nfa_step_area.empty()
             nfa_ph.markdown(
-                f"<div class='step-state'>NFA — adding state: {state}</div>",
+                f"<div class='step-state'>NFA - adding state: {state}</div>",
                 unsafe_allow_html=True
             )
 
@@ -969,7 +969,7 @@ def render_ui():
                     build_graph_html(list(revealed_states), revealed_edges,
                                      final_states_clean, initial_state,
                                      highlighted_state=state,
-                                     title="NFA — adding state: " + state),
+                                     title="NFA - adding state: " + state),
                     height=400)
             time.sleep(0.85)
 
@@ -990,7 +990,7 @@ def render_ui():
                                          final_states_clean, initial_state,
                                          highlighted_state=state,
                                          highlighted_edges=[edge],
-                                         title="NFA — " + edge[0] + " --[" + edge[2] + "]--> " + edge[1]),
+                                         title="NFA - " + edge[0] + " --[" + edge[2] + "]--> " + edge[1]),
                         height=400)
                 time.sleep(0.9)
 
@@ -998,7 +998,7 @@ def render_ui():
     with nfa_graph_placeholder:
         st.components.v1.html(
             build_graph_html(states_list, all_nfa_edges, final_states_clean,
-                             initial_state, title="NFA — complete"),
+                             initial_state, title="NFA - complete"),
             height=400)
 
     nfa_done_ph = nfa_step_area.empty()
@@ -1009,7 +1009,7 @@ def render_ui():
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-head'>DFA Subset Construction — Step by Step</div>",
+    st.markdown("<div class='section-head'>DFA Subset Construction - Step by Step</div>",
                 unsafe_allow_html=True)
 
     order, dfa_transitions, dfa_final, has_dead, steps_log = run_subset_construction(
@@ -1035,7 +1035,7 @@ def render_ui():
             if state_str == "qd":
                 header_ph = steps_area.empty()
                 header_ph.markdown(
-                    "<div class='step-state'>Processing dead state [qd] — all inputs loop back to [qd]</div>",
+                    "<div class='step-state'>Processing dead state [qd] - all inputs loop back to [qd]</div>",
                     unsafe_allow_html=True
                 )
             else:
@@ -1045,7 +1045,7 @@ def render_ui():
                 else:
                     nfa_members = "{" + state_str + "}"
                 header_ph.markdown(
-                    f"<div class='step-state'>Processing DFA state: [{state_str}] — NFA states: {nfa_members}</div>",
+                    f"<div class='step-state'>Processing DFA state: [{state_str}] - NFA states: {nfa_members}</div>",
                     unsafe_allow_html=True
                 )
 
@@ -1057,7 +1057,7 @@ def render_ui():
                     build_graph_html(list(dfa_revealed_states), dfa_revealed_edges,
                                      dfa_final, initial_state,
                                      highlighted_state=state_str,
-                                     title="DFA — processing: [" + state_str + "]"),
+                                     title="DFA - processing: [" + state_str + "]"),
                     height=400)
             time.sleep(0.5)
 
@@ -1074,7 +1074,7 @@ def render_ui():
                     css_class = "step-dead"
                 elif is_first_dead and not dead_introduced:
                     dead_introduced = True
-                    msg = f"On '{sym}': [{state_str}] --> [qd] (no NFA transitions — dead state introduced)"
+                    msg = f"On '{sym}': [{state_str}] --> [qd] (no NFA transitions - dead state introduced)"
                     css_class = "step-dead-intro"
                 elif is_dead:
                     msg = f"On '{sym}': [{state_str}] --> [qd]"
@@ -1104,7 +1104,7 @@ def render_ui():
                                          dfa_final, initial_state,
                                          highlighted_state=state_str,
                                          highlighted_edges=[current_edge],
-                                         title="DFA — [" + state_str + "] --[" + sym + "]--> [" + nxt + "]"),
+                                         title="DFA - [" + state_str + "] --[" + sym + "]--> [" + nxt + "]"),
                         height=400)
                 time.sleep(0.5)
 
@@ -1118,7 +1118,7 @@ def render_ui():
     with dfa_graph_placeholder:
         st.components.v1.html(
             build_graph_html(list(dfa_revealed_states), all_dfa_edges,
-                             dfa_final, initial_state, title="DFA — complete"),
+                             dfa_final, initial_state, title="DFA - complete"),
             height=400)
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
@@ -1157,12 +1157,12 @@ def render_ui():
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-head'>NFA — Individual Step Diagrams</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-head'>NFA - Individual Step Diagrams</div>", unsafe_allow_html=True)
 
     st.markdown("""
     <div class='card-lavender' style='margin-bottom:18px;'>
       <span style='font-size:14px; color:#4a148c;'>
-        Each diagram below shows exactly one NFA transition — the source state appears first,
+        Each diagram below shows exactly one NFA transition - the source state appears first,
         then the transition edge is drawn, followed by the destination state.
         Only the states involved in that specific step are shown.
       </span>
@@ -1221,7 +1221,7 @@ def render_ui():
 
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-head'>DFA — Individual Step Diagrams</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-head'>DFA - Individual Step Diagrams</div>", unsafe_allow_html=True)
 
     st.markdown("""
     <div class='card-lavender' style='margin-bottom:18px;'>
