@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFA &rarr; DFA Converter And Visualizer | Visual Learning Tool</title>
+    <meta name="description" content="Interactive NFA to DFA converter - visualize Subset Construction step by step.">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+<div class="container">
+<div class="glass-card">
+
+    <header>
+        <h1>NFA &rarr; DFA Converter And Visualizer</h1>
+        <p class="subtitle">Visualize the Subset Construction method - step by step, automatically</p>
+    </header>
+
+    <nav id="main-nav" class="nav-row">
+        <div class="nav-pill active"  data-sec="input">Input</div>
+        <div class="nav-pill locked"  data-sec="nfa">NFA</div>
+        <div class="nav-pill locked"  data-sec="nfa-steps">NFA Steps</div>
+        <div class="nav-pill locked"  data-sec="construction">DFA</div>
+        <div class="nav-pill locked"  data-sec="final">Final DFA</div>
+        <div class="nav-pill locked"  data-sec="step-diagrams">DFA Steps</div>
+    </nav>
+
+    <section id="input-section" class="sec active">
+
+        <div class="tool-desc">
+            <p>This tool helps you convert an NFA into a DFA step-by-step. Enter your NFA transitions below, pick the final states, and watch the DFA get built automatically - one state at a time.</p>
+        </div>
+
+        <div class="eps-bar">
+            <span class="eps-label">Epsilon symbol for copy paste:</span>
+            <button id="copy-eps-btn" class="eps-btn" title="Click to copy &epsilon;">
+                &epsilon; <span class="eps-copy-hint">copy</span>
+            </button>
+            <span id="copy-confirm" class="copy-ok" aria-live="polite"></span>
+        </div>
+
+        <div class="form-group">
+            <label class="lbl">Transition Rules <span class="hint">one per line - e.g. q0,a=q0,q1 &nbsp;or&nbsp; q0,&epsilon;=q1</span></label>
+            <textarea id="trans-input" rows="6" spellcheck="false"
+                placeholder="q0,a=q0,q1&#10;q0,b=q0&#10;q1,&epsilon;=q2&#10;q2,a=q2"></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="lbl">Extra Alphabets <span class="hint">optional, comma-separated</span></label>
+                <input type="text" id="extra-alpha" placeholder="e.g. c, d">
+            </div>
+            <div class="form-group">
+                <label class="lbl">Final States <span class="hint">click chips to select</span></label>
+                <div id="final-chips" class="chip-box">
+                    <span class="chip-placeholder">Enter transitions first&hellip;</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="input-err" class="err-box" style="display:none"></div>
+
+        <div class="btn-row">
+            <button id="parse-btn"   class="btn btn-soft">Preview States</button>
+            <button id="convert-btn" class="btn btn-main" disabled>Convert &rarr;</button>
+        </div>
+        <p class="footnote">First state in the first line is the <b>start state</b>. All animations start automatically.</p>
+    </section>
+
+    <section id="nfa-section" class="sec">
+        <div class="sec-title">Original NFA - animated step by step</div>
+        <div class="legend-row">
+            <span class="leg-item"><span class="leg-dot" style="background:#80cbc4;border-color:#00695c"></span>Start</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#f48fb1;border-color:#880e4f"></span>Final</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#ce93d8;border-color:#7b1fa2"></span>Normal</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#e0e0e0;border-color:#9e9e9e"></span>Dead</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#ce93d8;border-color:#f57f17;border-width:3px"></span>Active</span>
+        </div>
+        <div class="anim-bar">
+            <div id="nfa-step-pill" class="step-pill">Waiting&hellip;</div>
+            <div id="nfa-anim-msg"  class="anim-msg">Press Convert to start.</div>
+            <div id="nfa-loop-badge" class="loop-badge" style="display:none">&#128260; looping</div>
+        </div>
+        <div id="nfa-graph" class="graph-box"></div>
+        <div id="nfa-step-log" class="step-log"></div>
+
+        <div class="sec-title" style="margin-top:28px">NFA Transition Table</div>
+        <div id="nfa-table"></div>
+    </section>
+
+    <section id="nfa-steps-section" class="sec">
+        <div class="sec-title">NFA - Individual Step Diagrams</div>
+        <p class="subtitle" style="margin-bottom:14px">Each card shows one NFA transition - source state, input symbol, destination state.</p>
+        <div class="legend-row" style="margin-bottom:18px">
+            <span class="leg-item"><span class="leg-dot" style="background:#ffd54f;border-color:#f57f17"></span>Source</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#ce93d8;border-color:#7b1fa2"></span>Destination</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#f48fb1;border-color:#880e4f"></span>Final</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#e0e0e0;border-color:#9e9e9e"></span>Dead</span>
+            <span class="leg-item" style="font-size:11px;color:var(--muted)">Final color always shown, even if also Start</span>
+        </div>
+        <div class="step-nav" id="nfa-nav" style="display:none">
+            <button class="btn btn-soft btn-sm nav-prev" data-target="nfa-steps-list">&larr; Prev</button>
+            <span class="nav-counter">Step 0 of 0</span>
+            <button class="btn btn-soft btn-sm nav-next" data-target="nfa-steps-list">Next &rarr;</button>
+        </div>
+        <div id="nfa-steps-list"></div>
+    </section>
+
+    <section id="construction-section" class="sec">
+        <div class="sec-title">DFA - automatic animation</div>
+        <div class="anim-bar">
+            <div id="step-pill"   class="step-pill">Waiting&hellip;</div>
+            <div id="anim-msg"    class="anim-msg">Press Convert to start.</div>
+            <div id="loop-badge"  class="loop-badge" style="display:none">&#128260; looping</div>
+        </div>
+        <div id="construction-graph" class="graph-box"></div>
+        <div id="step-log" class="step-log"></div>
+    </section>
+
+    <section id="final-section" class="sec">
+        <div class="sec-title">Final DFA</div>
+        <div id="dfa-summary" class="summary-row"></div>
+        <div id="dfa-graph"   class="graph-box tall"></div>
+        <div class="sec-title" style="margin-top:28px">DFA Transition Table</div>
+        <div id="dfa-table"></div>
+    </section>
+
+    <section id="step-diagrams-section" class="sec">
+        <div class="sec-title">DFA Steps - Individual Diagram Carousel</div>
+        <p class="subtitle" style="margin-bottom:14px">Each card shows one DFA transition - where you are, what input triggers it, and where you end up.</p>
+        <div class="legend-row" style="margin-bottom:18px">
+            <span class="leg-item"><span class="leg-dot" style="background:#ffd54f;border-color:#f57f17"></span>Source</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#ce93d8;border-color:#7b1fa2"></span>Destination</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#f48fb1;border-color:#880e4f"></span>Final</span>
+            <span class="leg-item"><span class="leg-dot" style="background:#e0e0e0;border-color:#9e9e9e"></span>Dead</span>
+            <span class="leg-item" style="font-size:11px;color:var(--muted)">Final color always shown, even if also Start</span>
+        </div>
+        <div class="step-nav" id="dfa-nav" style="display:none">
+            <button class="btn btn-soft btn-sm nav-prev" data-target="steps-list">&larr; Prev</button>
+            <span class="nav-counter">Step 0 of 0</span>
+            <button class="btn btn-soft btn-sm nav-next" data-target="steps-list">Next &rarr;</button>
+        </div>
+        <div id="steps-list"></div>
+    </section>
+
+</div>
+</div>
+
+<div id="live-indicator" class="live-badge" style="display: none;">
+    <span class="live-pulse"></span> Live Sync Active
+</div>
+
+<script src="logic.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
